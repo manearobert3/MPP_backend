@@ -1,13 +1,58 @@
 //const express = require("express");
 import express from "express";
-
+import http from "http";
+import { faker } from "@faker-js/faker";
+import { WebSocketServer } from "ws";
+// CJS
 const app = express();
 const port = 5050;
+
+//const WebSocket = require("ws");
 import cors from "cors";
 // npx nodemon index.js
 app.use(cors());
 app.use(express.json());
-//app.listen(5000, () => console.log("app is running"));
+
+const generateFoodData = () => {
+  return {
+    id: faker.string.uuid(),
+    name: faker.lorem.word(),
+    calories: faker.number.int({ min: 50, max: 1000 }),
+    fats: faker.number.float({ min: 0, max: 50, multipleOf: 1 }),
+    description: faker.lorem.sentence(),
+  };
+};
+const generateMultipleFoodData = () => {
+  for (let i = 0; i < 2; i++) {
+    const food = generateFoodData();
+    const newId = Food.length > 0 ? Food[Food.length - 1].id + 1 : 1;
+    food.id = newId;
+    Food.push(food);
+  }
+  if (wsClient) {
+    wsClient.send("refresh");
+  }
+};
+let intervalId;
+
+const wss = new WebSocketServer({ port: 3000 });
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`);
+});
+let wsClient;
+wss.on("connection", function connection(ws) {
+  console.log("A new client connected");
+
+  ws.on("error", console.error);
+
+  ws.on("message", function message(data) {
+    console.log("received: %s", data);
+  });
+  wsClient = ws;
+
+  ws.send("something");
+});
+intervalId = setInterval(generateMultipleFoodData, 5000);
 let Food = [
   {
     id: 1,
@@ -75,54 +120,105 @@ let Food = [
 ];
 
 app.get("/", (req, res) => {
-  res.send("hHATZ");
+  res.send("Buna ziua!");
 });
 
+app.delete("/api/foods/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = Food.findIndex((f) => f.id === id);
+
+  if (index === -1) {
+    return res.status(404).send("Food not found");
+  }
+
+  // Remove the food item from the array
+  Food.splice(index, 1);
+
+  console.log("Food deleted successfully");
+
+  res.status(200).send("Food deleted successfully");
+});
+
+app.post("/api/foods", (req, res) => {
+  const newFood = req.body;
+  if (
+    updatedFood.calories <= 0 ||
+    updatedFood.fats <= 0 ||
+    typeof updatedFood.name !== "string"
+  ) {
+    return res.status(400).send("Invalid food data");
+  }
+  // Generate a new ID for the food item
+  const newId = Food.length > 0 ? Food[Food.length - 1].id + 1 : 1;
+  newFood.id = newId;
+
+  // Add the new food item to the array
+  Food.push(newFood);
+
+  console.log("New food item created:", newFood);
+
+  res.status(201).send("New food item created successfully");
+});
+
+app.get("/api/check-internet", (req, res) => {
+  const options = {
+    hostname: "www.google.com",
+    port: 80,
+    path: "/",
+    method: "GET",
+  };
+
+  const reqHttp = http.request(options, (resp) => {
+    res.json({ isOnline: true });
+  });
+
+  reqHttp.on("error", (err) => {
+    res.json({ isOnline: false });
+  });
+
+  reqHttp.end();
+});
+
+// app.get("/api/foods", (req, res) => {
+//   res.send(Food);
+// });
+
 app.get("/api/foods", (req, res) => {
+  // for (let i = 0; i < 5; i++) {
+  //   const food = generateFoodData();
+  //   const newId = Food.length > 0 ? Food[Food.length - 1].id + 1 : 1;
+  //   food.id = newId;
+  //   Food.push(food);
+  // }
   res.send(Food);
 });
 
 app.get("/api/foods/:id", (req, res) => {
   let food = Food.find((f) => f.id === parseInt(req.params.id));
-  if (!food) return res.status(400).send("Product not found");
+  if (!food) return res.status(404).send("Product not found");
   res.send(food);
-});
-
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
 });
 
 app.post("/", (req, res) => {
   res.send("Got a POST request");
 });
 
-// Function to convert Inputs to Food type
-function convertInputsToFood(inputs, id) {
-  return {
-    id: id,
-    name: inputs.name,
-    calories: inputs.calories,
-    fats: inputs.fats,
-    description: inputs.description,
-  };
-}
 app.put("/api/foods/:id", (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const updatedFood = req.body;
-    // const foodToUpdate = convertInputsToFood(updatedFood, id); // Convert Inputs to Food type
-
+    if (
+      updatedFood.calories <= 0 ||
+      updatedFood.fats <= 0 ||
+      typeof updatedFood.name !== "string"
+    ) {
+      return res.status(400).send("Invalid food data");
+    }
     let index = Food.findIndex((f) => f.id === id);
     if (index === -1) return res.status(404).send("Food not found");
-    console.error("food received:", index);
-    console.error("index received:", updatedFood);
 
     Food[index] = { ...Food[index], ...updatedFood };
-    console.error("food received:", index);
 
-    console.error("Food updated successfully", index);
-
-    //Food[index] = updatedFood;
     res.status(200).send("Food updated successfully");
   } catch (error) {
     console.error("Error updating food:", error.response.data);
