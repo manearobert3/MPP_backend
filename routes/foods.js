@@ -83,7 +83,6 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("Error creating new food:", error.message);
     res.status(500).json({ error: "Internal Server Error" });
-  } finally {
   }
 });
 

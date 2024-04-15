@@ -54,14 +54,12 @@ const generateFoodData = () => {
 };
 let wsClient;
 const generateMultipleFoodData = async () => {
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 1; i++) {
     const newFood = generateFoodData();
-
     const query = `
-  INSERT INTO Food (FoodName, Calories, Fats, FoodDescription)
-  VALUES ('${newFood.FoodName}', ${newFood.Calories}, ${newFood.Fats}, '${newFood.FoodDescription}')
-`;
-
+    INSERT INTO Food (FoodName, Calories, Fats, FoodDescription)
+    VALUES ('${newFood.FoodName}', ${newFood.Calories}, ${newFood.Fats}, '${newFood.FoodDescription}')
+  `;
     await sql.connect(config);
     await sql.query(query);
   }
@@ -72,3 +70,21 @@ const generateMultipleFoodData = async () => {
 
 let intervalId;
 intervalId = setInterval(generateMultipleFoodData, 5000);
+
+wss.on("connection", function connection(ws) {
+  console.log("A new client connected");
+
+  ws.on("error", console.error);
+
+  ws.on("message", function message(data) {
+    console.log("received: %s", data);
+  });
+  wsClient = ws;
+
+  ws.send("something");
+  // server.on("close", () => {
+  //   ws.close();
+  // });
+});
+
+export default app;

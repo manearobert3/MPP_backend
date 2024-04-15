@@ -61,6 +61,14 @@ router.delete("/:id", async (req, res) => {
 router.post("/", async (req, res) => {
   const newFoodReview = req.body;
   console.log(newFoodReview);
+  if (
+    newFoodReview.Rating < 0 ||
+    newFoodReview.Rating > 10 ||
+    typeof newFoodReview.AuthorName !== "string" ||
+    typeof newFoodReview.FoodID !== "number"
+  ) {
+    return res.status(400).send("Invalid food data");
+  }
   const query = `
     INSERT INTO FoodReview (FoodID, ReviewText, Rating,AuthorName)
     VALUES (${newFoodReview.FoodID}, '${newFoodReview.ReviewText}', ${newFoodReview.Rating},'${newFoodReview.AuthorName}')
@@ -84,6 +92,14 @@ router.put("/:id", async (req, res) => {
   const foodID = parseInt(req.params.id);
   const updatedFoodReview = req.body;
   console.log(updatedFoodReview);
+  if (
+    updatedFoodReview.Rating < 0 ||
+    updatedFoodReview.Rating > 10 ||
+    typeof updatedFoodReview.AuthorName !== "string" ||
+    typeof updatedFoodReview.FoodID !== "number"
+  ) {
+    return res.status(400).send("Invalid food data");
+  }
   const query = `
       UPDATE FoodReview
       SET FoodID = ${updatedFoodReview.FoodID},
