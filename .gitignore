@@ -147,5 +147,5 @@ dist
 dist/
 npm-debug.log
 yarn-error.log
-
+cert/
 # End of https://www.toptal.com/developers/gitignore/api/node,vuejs

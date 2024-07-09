@@ -1,123 +1,220 @@
-import express from "express";
-import { connectDB, closeDB } from "../db.js";
-import sql from "mssql/msnodesqlv8.js";
+const express = require("express");
+const mysql = require("mysql2");
+const bodyParser = require("body-parser");
+const { authenticateToken, authorizeRole } = require("../authMiddleware");
+
+var con = mysql.createConnection({
+  host: "mysql-95d2427-manea-7c11.j.aivencloud.com",
+  user: "avnadmin",
+  password: "AVNS_iL4I36bVDbDl4yr9DIZ",
+  database: "mppmysql",
+  port: 21289,
+});
 
 const router = express.Router();
+router.use(bodyParser.json()); // Middleware to parse JSON bodies
 
-// Define routes related to other entity
-router.get("/", async (req, res) => {
-  try {
-    await connectDB();
-    const query = "SELECT * FROM FoodReview";
-    const result = await sql.query(query);
-    res.json(result.recordset);
-  } catch (error) {
-    console.error("Error fetching review reviews:", error.message);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-
-// GET a single review by ID
-router.get("/:id", async (req, res) => {
-  const foodID = req.params.id;
-  try {
-    await connectDB();
-    const query = `SELECT * FROM FoodReview WHERE ReviewID = ${foodID}`;
-    const result = await sql.query(query);
-
-    if (result.recordset.length === 0) {
-      return res.status(404).send("Review not found");
+// Function to get all reviews
+function getAllReviews(callback) {
+  const query = "SELECT * FROM FoodReview";
+  con.query(query, (error, results) => {
+    if (error) {
+      return callback(error, null);
     }
+    callback(null, results);
+  });
+}
 
-    res.send(result.recordset[0]);
-  } catch (error) {
-    console.error("Error fetching review:", error.message);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-
-// DELETE a review by ID
-router.delete("/:id", async (req, res) => {
-  const foodID = parseInt(req.params.id);
-  const query = `DELETE FROM FoodReview WHERE ReviewID = ${foodID}`;
-
-  try {
-    await connectDB();
-    const result = await sql.query(query);
-
-    if (result.rowsAffected[0] === 0) {
-      return res.status(404).send("Review not found");
+// Function to get review by ID
+function getReviewById(reviewID, callback) {
+  const query = "SELECT * FROM FoodReview WHERE ReviewID = ?";
+  con.query(query, [reviewID], (error, results) => {
+    if (error) {
+      return callback(error, null);
     }
+    callback(null, results);
+  });
+}
 
-    console.log("Review deleted successfully");
-    res.status(200).send("Review deleted successfully");
-  } catch (error) {
-    console.error("Error deleting review:", error.message);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
+// Function to delete review by ID
+function deleteReviewById(reviewID, callback) {
+  const query = "DELETE FROM FoodReview WHERE ReviewID = ?";
+  con.query(query, [reviewID], (error, results) => {
+    if (error) {
+      return callback(error, null);
+    }
+    callback(null, results);
+  });
+}
 
-// POST a new review
-router.post("/", async (req, res) => {
-  const newFoodReview = req.body;
-  console.log(newFoodReview);
-  if (
-    newFoodReview.Rating < 0 ||
-    newFoodReview.Rating > 10 ||
-    typeof newFoodReview.AuthorName !== "string" ||
-    typeof newFoodReview.FoodID !== "number"
-  ) {
-    return res.status(400).send("Invalid food data");
-  }
+// Function to create a new review
+function createReview(newReview, callback) {
   const query = `
-    INSERT INTO FoodReview (FoodID, ReviewText, Rating,AuthorName)
-    VALUES (${newFoodReview.FoodID}, '${newFoodReview.ReviewText}', ${newFoodReview.Rating},'${newFoodReview.AuthorName}')
+    INSERT INTO FoodReview (FoodID, ReviewText, Rating, AuthorName)
+    VALUES (?, ?, ?, ?)
   `;
+  console.log(newReview.FoodID);
+  console.log(newReview.ReviewText);
+  console.log(newReview.Rating);
+  con.query(
+    query,
+    [
+      newReview.FoodID,
+      newReview.ReviewText,
+      newReview.Rating,
+      newReview.AuthorName,
+    ],
+    (error, results) => {
+      if (error) {
+        return callback(error, null);
+      }
+      callback(null, results);
+    }
+  );
+}
 
-  try {
-    await connectDB();
-    await sql.query(query);
-
-    console.log("New food item created:", newFoodReview);
-    res.status(201).send("New review item created successfully");
-  } catch (error) {
-    console.error("Error creating new review:", error.message);
-    res.status(500).send(error.message);
-  } finally {
-  }
-});
-
-// PUT/update a review by ID
-router.put("/:id", async (req, res) => {
-  const foodID = parseInt(req.params.id);
-  const updatedFoodReview = req.body;
-  console.log(updatedFoodReview);
-  if (
-    updatedFoodReview.Rating < 0 ||
-    updatedFoodReview.Rating > 10 ||
-    typeof updatedFoodReview.AuthorName !== "string" ||
-    typeof updatedFoodReview.FoodID !== "number"
-  ) {
-    return res.status(400).send("Invalid food data");
-  }
+// Function to update a review by ID
+function updateReviewById(reviewID, updatedReview, callback) {
   const query = `
-      UPDATE FoodReview
-      SET FoodID = ${updatedFoodReview.FoodID},
-      ReviewText = '${updatedFoodReview.ReviewText}',
-      Rating = ${updatedFoodReview.Rating},
-      AuthorName = '${updatedFoodReview.AuthorName}'
-      WHERE ReviewID = ${foodID}
-    `;
+    UPDATE FoodReview
+    SET FoodID = ?,
+        ReviewText = ?,
+        Rating = ?,
+        AuthorName = ?
+    WHERE ReviewID = ?
+  `;
+  con.query(
+    query,
+    [
+      updatedReview.FoodID,
+      updatedReview.ReviewText,
+      updatedReview.Rating,
+      updatedReview.AuthorName,
+      reviewID,
+    ],
+    (error, results) => {
+      if (error) {
+        return callback(error, null);
+      }
+      callback(null, results);
+    }
+  );
+}
 
-  try {
-    await connectDB();
-    await sql.query(query);
-    console.log("Review updated successfully");
-    res.status(200).send("Review updated successfully");
-  } catch (error) {
-    console.error("Error updating review:", error.message);
-    res.status(500).send("Internal Server Error");
-  }
+// API endpoint to get all reviews
+router.get("/", (req, res) => {
+  getAllReviews((error, results) => {
+    if (error) {
+      console.error("Error fetching reviews:", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+    res.status(200).json(results);
+  });
 });
 
-export default router;
+// API endpoint to get a single review by ID
+router.get("/:id", (req, res) => {
+  const reviewID = req.params.id;
+  getReviewById(reviewID, (error, results) => {
+    if (error) {
+      console.error("Error fetching review:", error.message);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).send("Review not found");
+    }
+
+    res.status(200).json(results[0]);
+  });
+});
+
+// API endpoint to delete a review by ID
+router.delete(
+  "/:id",
+  authenticateToken,
+  authorizeRole("admin", "manager"),
+  (req, res) => {
+    const reviewID = parseInt(req.params.id);
+    deleteReviewById(reviewID, (error, results) => {
+      if (error) {
+        console.error("Error deleting review:", error.message);
+        return res.status(500).json({ error: "Internal Server Error" });
+      }
+
+      if (results.affectedRows === 0) {
+        return res.status(404).send("Review not found");
+      }
+
+      console.log("Review deleted successfully");
+      res.status(200).send("Review deleted successfully");
+    });
+  }
+);
+
+// API endpoint to create a new review
+router.post(
+  "/",
+  authenticateToken,
+  authorizeRole("admin", "manager"),
+  (req, res) => {
+    const newReview = req.body;
+    console.log(newReview.FoodID);
+    console.log(newReview.ReviewText);
+    console.log(newReview.Rating);
+    if (
+      newReview.Rating < 0 ||
+      newReview.Rating > 10 ||
+      typeof newReview.AuthorName !== "string" ||
+      typeof newReview.FoodID !== "number"
+    ) {
+      return res.status(400).send("Invalid review data");
+    }
+
+    createReview(newReview, (error, results) => {
+      if (error) {
+        console.error("Error creating new review:", error.message);
+        return res.status(500).json({ error: "Internal Server Error" });
+      }
+
+      console.log("New review item created:", newReview);
+      res.status(201).send("New review item created successfully");
+    });
+  }
+);
+
+// API endpoint to update a review by ID
+router.put(
+  "/:id",
+  authenticateToken,
+  authorizeRole("admin", "manager"),
+  (req, res) => {
+    const reviewID = parseInt(req.params.id);
+    const updatedReview = req.body;
+
+    if (
+      updatedReview.Rating < 0 ||
+      updatedReview.Rating > 10 ||
+      typeof updatedReview.AuthorName !== "string" ||
+      typeof updatedReview.FoodID !== "number"
+    ) {
+      return res.status(400).send("Invalid review data");
+    }
+
+    updateReviewById(reviewID, updatedReview, (error, results) => {
+      if (error) {
+        console.error("Error updating review:", error.message);
+        return res.status(500).send("Internal Server Error");
+      }
+
+      if (results.affectedRows === 0) {
+        return res.status(404).send("Review not found");
+      }
+
+      console.log("Review updated successfully");
+      res.status(200).send("Review updated successfully");
+    });
+  }
+);
+
+module.exports = router;

@@ -1,4 +1,4 @@
-import sql from "mssql/msnodesqlv8.js";
+const sql = require("mssql/msnodesqlv8.js");
 
 const config = {
   connectionString:
@@ -6,7 +6,7 @@ const config = {
   driver: "MPPDB",
 };
 
-export const connectDB = async () => {
+const connectDB = async () => {
   try {
     await sql.connect(config);
     console.log("Database connection successful!");
@@ -15,7 +15,7 @@ export const connectDB = async () => {
   }
 };
 
-export const closeDB = async () => {
+const closeDB = async () => {
   try {
     await sql.close();
     console.log("Database connection closed.");
@@ -24,4 +24,8 @@ export const closeDB = async () => {
   }
 };
 
-export default sql;
+module.exports = {
+  connectDB,
+  closeDB,
+  sql,
+};
