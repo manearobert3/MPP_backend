@@ -9,7 +9,7 @@ const router = express.Router();
 var pool = mysql.createPool({
   host: process.env.MYSQL_HOST.toString(),
   user: process.env.MYSQL_USER.toString(),
-  password: process.env.MYSQL_PASSWORD.toString(),
+  password: "",
   database: "mppmysql",
   port: 21289,
 });

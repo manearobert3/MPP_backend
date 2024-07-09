@@ -6,7 +6,7 @@ const { authenticateToken, authorizeRole } = require("../authMiddleware");
 var con = mysql.createConnection({
   host: process.env.MYSQL_HOST.toString(),
   user: process.env.MYSQL_USER.toString(),
-  password: process.env.MYSQL_PASSWORD.toString(),
+  password: "",
   database: "mppmysql",
   port: 21289,
 });
