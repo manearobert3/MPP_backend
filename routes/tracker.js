@@ -3,9 +3,9 @@ const mysql = require("mysql2/promise");
 const bodyParser = require("body-parser");
 const nodemailer = require("nodemailer");
 const con = mysql.createPool({
-  host: "mysql-95d2427-manea-7c11.j.aivencloud.com",
-  user: "avnadmin",
-  password: "AVNS_iL4I36bVDbDl4yr9DIZ",
+  host: process.env.MYSQL_HOST.toString(),
+  user: process.env.MYSQL_USER.toString(),
+  password: process.env.MYSQL_PASSWORD.toString(),
   database: "mppmysql",
   port: 21289,
 });

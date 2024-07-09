@@ -18,9 +18,9 @@ const path = require("path");
 const port = 5000;
 
 var con = mysql.createConnection({
-  host: "mysql-95d2427-manea-7c11.j.aivencloud.com",
-  user: "avnadmin",
-  password: "AVNS_iL4I36bVDbDl4yr9DIZ",
+  host: process.env.MYSQL_HOST.toString(),
+  user: process.env.MYSQL_USER.toString(),
+  password: process.env.MYSQL_PASSWORD.toString(),
   database: "mppmysql",
   port: 21289,
 });
