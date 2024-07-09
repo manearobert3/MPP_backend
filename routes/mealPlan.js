@@ -6,8 +6,8 @@ const con = mysql.createPool({
   host: process.env.MYSQL_HOST.toString(),
   user: process.env.MYSQL_USER.toString(),
   password: process.env.MYSQL_PASSWORD.toString(),
-  database: "mppmysql",
-  port: 21289,
+  database: process.env.MYSQL_NAME.toString(),
+  port: process.env.MYSQL_PORT.toString(),
 });
 
 const router = express.Router();
